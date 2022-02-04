@@ -288,5 +288,7 @@ while not receiver.checkFinish():
     switch.timePass()
 
 # return overhead count
-overhead = receiver.overhead + switch.overhead
-print("Overhead: ", overhead)
+print("ACK sent: ", receiver.overhead)
+print("BCN signal sent: ", switch.overhead)
+#overhead = receiver.overhead + switch.overhead
+#print("Overhead: ", overhead)

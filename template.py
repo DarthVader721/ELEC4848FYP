@@ -216,4 +216,4 @@ while not receiver.checkFinish():
     receiver.timePass()
     switch.timePass()
 # return overhead count
-print("Overhead: ", receiver.getOverhead())
+print("ACK sent: ", receiver.getOverhead())
