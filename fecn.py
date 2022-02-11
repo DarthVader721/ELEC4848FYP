@@ -3,9 +3,6 @@
 # author: Law Lok Hin Andrew (3035571424) 
 
 # buffer used in the switch
-from asyncio.windows_events import NULL
-
-
 class Buffer:
     def __init__(self, max):
         self.max = max # max size of the buffer
@@ -77,11 +74,14 @@ class Receiver:
             print(msg) # print out received packets
             id = packet["sender"]
             packetNum = packet["packetNum"]
+            rd = packet["rd"] # FECN
             if packetNum == self.ackCounter[id]:
                 self.ackCounter[id] += 1
-                ack = (id, packetNum)
+                ack = (id, packetNum, rd) # FECN
                 self.overhead += 1
             return ack  
+
+
 
 # senders to send packets to the receiver 
 class Sender:
@@ -133,6 +133,7 @@ class Sender:
                         packet["sentTime"] = self.time
                         packet["packetNum"] = self.sent
                         packet["rate"] = self.rate
+                        packet["rd"] = -1 # for FECN
                         self.sent += 1
                     else: # timeout
                         packet = {}
@@ -140,6 +141,7 @@ class Sender:
                         packet["sentTime"] = self.time
                         packet["packetNum"] = timeout
                         packet["rate"] = self.rate
+                        packet["rd"] = -1 # for FECN
                         self.waitTimer[timeout] = 0 # restart timer
                 else: # all packets sent at least once
                     if timeout == -1:
@@ -150,13 +152,18 @@ class Sender:
                         packet["sentTime"] = self.time
                         packet["packetNum"] = timeout
                         packet["rate"] = self.rate
+                        packet["rd"] = -1 # for FECN
                         self.waitTimer[timeout] = 0 # restart timer
             else: # not ready to sent according to rate regulator
                 packet = {}
         else: # transmission finished
             packet = {}
         return packet    
-        
+
+    # for FECN
+    def handleRDTag(self, rd): # adjust the rate according to RD tag
+        self.rate = rd
+
 # switch to relay packets sent from senders to the receiver
 class Switch:
     def __init__(self, max, rate, tInterval):
@@ -176,6 +183,7 @@ class Switch:
         
     def receive(self, newElement):
         if newElement != {}:
+            newElement["rd"] = max(newElement["rd"], self.advertisedRate)
             self.buffer.push(newElement)
         
     def send(self):
@@ -193,12 +201,15 @@ class Switch:
             fq = self.queueControlFunction()
             if fq != 0: # avoiding division by 0
                 effectiveLoadFactor = self.rate / arrivalRate / fq
-                self.advertisedRate = self.advertisedRate * effectiveLoadFactor
+                self.advertisedRate = round(self.advertisedRate * effectiveLoadFactor)
+                print(effectiveLoadFactor) #debug
             
 
     def queueControlFunction(self): # linear function
         size = self.buffer.getSize()
         return 1 - (size - self.qEq) / self.qEq
+
+    
 
 
 """  
@@ -230,11 +241,13 @@ while not receiver.checkFinish():
     if packet != {}:
         ack = receiver.handlePacket(packet)
         sender[ack[0]].ackPacket(ack[1])
+        #print(ack[2])
+        #sender[ack[0]].handleRDTag(ack[2]) # FECN
     # switch receive packets
     for i in range(NUM_SENDER):
         switch.receive(sender[i].sendPacket())
     # update the advertised rate of switch
-    switch.updateAdvertisedRate(sender[0].rate)
+    switch.updateAdvertisedRate(sender[0].rate / NUM_SENDER)
     # update time
     for i in range(NUM_SENDER):
         sender[i].timePass()
