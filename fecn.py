@@ -48,6 +48,7 @@ class Receiver:
             self.ackCounter[i] = 0
     
     def checkFinish(self): # check if all transmission are finished
+        #print("0: ", self.ackCounter[0], " 1: ", self.ackCounter[1])
         for i in range(self.numSender):
             if self.ackCounter[i] < self.numPacket:
                 return False
@@ -75,9 +76,9 @@ class Receiver:
             id = packet["sender"]
             packetNum = packet["packetNum"]
             rd = packet["rd"] # FECN
+            ack = (id, packetNum, rd) #FECN
             if packetNum == self.ackCounter[id]:
                 self.ackCounter[id] += 1
-                ack = (id, packetNum, rd) # FECN
                 self.overhead += 1
             return ack  
 
@@ -163,7 +164,9 @@ class Sender:
     # for FECN
     def handleRDTag(self, rd): # adjust the rate according to RD tag
         #print(rd)
-        self.rate = rd
+        if rd > 0:
+            self.rate = rd
+        #print("current rate: ", self.rate)
 
 # switch to relay packets sent from senders to the receiver
 class Switch:
@@ -184,6 +187,7 @@ class Switch:
         
     def receive(self, newElement):
         if newElement != {}:
+            #print(self.bufferSize())
             newElement["rd"] = max(newElement["rd"], self.advertisedRate)
             self.buffer.push(newElement)
         
@@ -200,19 +204,18 @@ class Switch:
     def updateAdvertisedRate(self, arrivalRate):
         if self.time % self.tInterval == 0: # time for advertised rate update
             fq = self.queueControlFunction()
-            if fq != 0: # avoiding division by 0
-                effectiveLoadFactor = self.rate / arrivalRate / fq
-                self.advertisedRate = round(self.advertisedRate * effectiveLoadFactor)
-                #print(effectiveLoadFactor)
-                #print("ARate: ",self.advertisedRate)
+            effectiveLoadFactor = self.rate / arrivalRate / fq
+            #print(self.advertisedRate * effectiveLoadFactor)
+            self.advertisedRate = round(self.advertisedRate * effectiveLoadFactor)
+            #print(arrivalRate)
+            #print(effectiveLoadFactor)
+            #print("ARate: ", self.advertisedRate)
             
 
     def queueControlFunction(self): # linear function
         size = self.buffer.getSize()
         #print(size)
-        return 1 - (1 / 3) * (size - self.qEq) / self.qEq
-
-    
+        return 1 - 0.333 * (size - self.qEq) / self.qEq
 
 
 """  
@@ -222,12 +225,12 @@ main program
 # Constants, can be changed if neccessary
 BUFFER_MAX = 21 # min of 21 prevent deadlock
 NUM_SENDER = 2
-NUM_PACKET = 20
+NUM_PACKET = 100
 WINDOW = 50
 SENDER_RATE = 10 # default rate of senders
 SWITCH_RATE = 10 # default rate of switch
 # added for FECN
-T_INTERVAL = 20
+T_INTERVAL = 200
 
 # initialization
 switch = Switch(BUFFER_MAX, SWITCH_RATE, T_INTERVAL)
@@ -244,13 +247,25 @@ while not receiver.checkFinish():
     if packet != {}:
         ack = receiver.handlePacket(packet)
         sender[ack[0]].ackPacket(ack[1])
-        #print(ack[2])
+        #print("return RD: ", ack[2])
         sender[ack[0]].handleRDTag(ack[2]) # FECN
     # switch receive packets
     for i in range(NUM_SENDER):
         switch.receive(sender[i].sendPacket())
     # update the advertised rate of switch
-    switch.updateAdvertisedRate(sender[0].rate / NUM_SENDER)
+    #print(sender[1].rate)
+    denom = 1
+    numer = 0
+    for i in range(NUM_SENDER):
+        denom *= sender[i].rate
+    for i in range(NUM_SENDER):
+        tmp = 1
+        for j in range(NUM_SENDER):
+            if j != i:
+                tmp *= sender[j].rate
+        numer += tmp
+    arrivalRate = denom / numer # skewed
+    switch.updateAdvertisedRate(arrivalRate)
     # update time
     for i in range(NUM_SENDER):
         sender[i].timePass()

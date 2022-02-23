@@ -172,7 +172,7 @@ class Sender:
         #print("Congestion Measure: ",congestionMeasure) # debug
         if congestionMeasure < 0: # decrease rate (increase in number)
             #print("decrease")
-            self.rate = round(self.rate * (1 - congestionMeasure / 20))
+            self.rate = round(self.rate * (1 - congestionMeasure / 40))
         if congestionMeasure > 0: # increase rate (decrease in number)
             #print("increase")
             newRate = self.rate - congestionMeasure
@@ -251,7 +251,7 @@ main program
 """
 
 # Constants, can be changed if neccessary
-BUFFER_MAX = 15
+BUFFER_MAX = 21
 NUM_SENDER = 2
 NUM_PACKET = 100
 WINDOW = 50
