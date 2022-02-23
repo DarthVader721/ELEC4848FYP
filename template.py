@@ -74,9 +74,9 @@ class Receiver:
             print(msg) # print out received packets
             id = packet["sender"]
             packetNum = packet["packetNum"]
+            ack = (id, packetNum)
             if packetNum == self.ackCounter[id]:
                 self.ackCounter[id] += 1
-                ack = (id, packetNum)
                 self.overhead += 1
             return ack  
 
