@@ -203,20 +203,20 @@ class Switch:
     # added for FECN
     def updateAdvertisedRate(self, arrivalRate):
         if self.time % self.tInterval == 0: # time for advertised rate update
-            fq = self.queueControlFunction()
-            effectiveLoadFactor = self.rate / arrivalRate / fq
+            #fq = self.queueControlFunction()
+            effectiveLoadFactor = self.rate / arrivalRate
             #print(self.advertisedRate * effectiveLoadFactor)
             self.advertisedRate = round(self.advertisedRate * effectiveLoadFactor)
             #print(arrivalRate)
             #print(effectiveLoadFactor)
             #print("ARate: ", self.advertisedRate)
             
-
+    """
     def queueControlFunction(self): # linear function
         size = self.buffer.getSize()
         #print(size)
         return 1 - 0.333 * (size - self.qEq) / self.qEq
-
+    """
 
 """  
 main program
