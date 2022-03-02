@@ -69,15 +69,16 @@ class Receiver:
 
     """
     packets received : {"sender": self.id, "sentTime": self.time, "packetNum": packetNum}
+    output: "sender;packet;sendTime;ReceiveTime;rate"
     """
 
     def handlePacket(self, packet): # will return the correct ACK when receive packet
         if packet != {}:
-            msg = "Sender: " + str(packet["sender"]) + "; "
-            msg += "Packet: " + str(packet["packetNum"]) + "; "
-            msg += "Send Time: " + str(packet["sentTime"]) + "; "
-            msg += "Receiver Time: " + str(self.time) + "; "
-            msg += "Current Rate: " + str(packet["rate"]) + "; "
+            msg = str(packet["sender"]) + ";"
+            msg += str(packet["packetNum"]) + ";"
+            msg += str(packet["sentTime"]) + ";"
+            msg += str(self.time) + ";"
+            msg += str(packet["rate"])
             print(msg) # print out received packets
             id = packet["sender"]
             packetNum = packet["packetNum"]
@@ -253,7 +254,7 @@ main program
 # Constants, can be changed if neccessary
 BUFFER_MAX = 21
 NUM_SENDER = 2
-NUM_PACKET = 100
+NUM_PACKET = 200
 WINDOW = 50
 SENDER_RATE = 10 # default rate of senders
 SWITCH_RATE = 10 # default rate of switch
