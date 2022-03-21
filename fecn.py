@@ -224,7 +224,7 @@ main program
 """
 
 # Constants, can be changed if neccessary
-BUFFER_MAX = 21
+BUFFER_MAX = 20
 NUM_SENDER = 2
 NUM_PACKET = 200
 WINDOW = 50
